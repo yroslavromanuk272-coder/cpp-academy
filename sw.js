@@ -1,8 +1,8 @@
 // Сервис-воркер: после первого открытия по HTTPS приложение работает без интернета.
 // Стратегия: сначала сеть (чтобы обновления приходили сразу), если сети нет — кэш.
 // При изменении файлов увеличь номер версии в CACHE.
-const CACHE = 'cpp-academy-v2';
-const FILES = ['./', './index.html', './style.css', './app.js', './data.js', './interpreter.js',
+const CACHE = 'cpp-academy-v3';
+const FILES = ['./', './index.html', './style.css', './app.js', './data.js', './data2.js', './interpreter.js',
   './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

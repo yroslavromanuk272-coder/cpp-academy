@@ -21,7 +21,7 @@ D.modules.forEach(m => m.lessons.forEach(l => { l.mod = m; LESSONS.push(l); BYID
 const css = document.createElement('style');
 css.textContent = '.theory code,.qtext code,.expl code,.taskbox code,.sub code,.banner code{font:0.9em var(--mono);background:rgba(0,0,0,.4);padding:1px 5px;border-radius:5px;color:#ffe28c}' +
   '.theory h2{color:var(--acc)}.theory b{color:#fff}.lbl{font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin:2px 2px 4px}' +
-  '.codewrap{overflow-y:auto}.codewrap>*{flex-shrink:0}.codewrap>#edslot{flex-shrink:1}#app.kb .tabsrow,#app.kb .lbl,#app.kb #inslot,#app.kb .out{display:none!important}#app.kb .topbar{padding-top:calc(var(--sat) + 4px);padding-bottom:4px}#main.nopad .lbody.theory{padding-top:8px}.stat{flex:1;text-align:center}.stat b{display:block;font-size:22px}.stat span{font-size:12px;color:var(--muted)}';
+  '.mbar{height:3px;background:rgba(255,255,255,.08)}.mbar i{display:block;height:100%;transition:width .6s}.codewrap{overflow-y:auto}.codewrap>*{flex-shrink:0}.codewrap>#edslot{flex-shrink:1}#app.kb .tabsrow,#app.kb .lbl,#app.kb #inslot,#app.kb .out{display:none!important}#app.kb .topbar{padding-top:calc(var(--sat) + 4px);padding-bottom:4px}#main.nopad .lbody.theory{padding-top:8px}.stat{flex:1;text-align:center}.stat b{display:block;font-size:22px}.stat span{font-size:12px;color:var(--muted)}';
 document.head.appendChild(css);
 
 /* ---------------- состояние ---------------- */
@@ -280,6 +280,7 @@ function makeEditor(opts) {
   ta.addEventListener('scroll', sync);
   if (!opts.small) {
     ta.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && opts.onRun) { e.preventDefault(); opts.onRun(); return; }
       if (e.key === 'Tab') { e.preventDefault(); api.insert('    '); return; }
       if (e.key === 'Enter' && !e.isComposing) {
         const v = ta.value, s = ta.selectionStart, ls = v.lastIndexOf('\n', s - 1) + 1;
@@ -372,6 +373,7 @@ function checkInto(outEl, ed, l, code) {
       html += '<div class="btns" style="margin-top:8px"><button class="btn green sm" id="nx">' + (nx ? 'Следующий урок →' : 'К курсу') + '</button></div>';
     } else {
       V.fails[l.id] = (V.fails[l.id] || 0) + 1;
+      if (V.fails[l.id] >= 2) html += '<div class="banner" style="margin-top:8px"><b>Подсказка:</b> ' + fmtInline(l.hint) + '</div>';
       vibrate(15);
     }
     outEl.innerHTML = html; outEl.scrollTop = 0;
@@ -438,7 +440,7 @@ function renderPath(main) {
   D.modules.forEach((m, mi) => {
     const dn = m.lessons.filter(l => S.done[l.id]).length;
     const open = m.id in V.open ? V.open[m.id] : (next && next.mod === m);
-    html += '<div class="card mod' + (open ? ' open' : '') + '"><button class="mod-h" data-mod="' + m.id + '"><span class="dot" style="background:' + m.color + '"></span><span class="grow"><b>' + (mi + 1) + '. ' + esc(m.title) + '</b></span><span class="cnt">' + dn + '/' + m.lessons.length + '</span><span class="chev">›</span></button><div class="mod-b">';
+    html += '<div class="card mod' + (open ? ' open' : '') + '"><button class="mod-h" data-mod="' + m.id + '"><span class="dot" style="background:' + m.color + '"></span><span class="grow"><b>' + (mi + 1) + '. ' + esc(m.title) + '</b></span><span class="cnt">' + dn + '/' + m.lessons.length + '</span><span class="chev">›</span></button><div class="mbar"><i style="width:' + Math.round(dn * 100 / m.lessons.length) + '%;background:' + m.color + '"></i></div><div class="mod-b">';
     m.lessons.forEach(l => {
       const done = !!S.done[l.id], isNext = next === l;
       html += '<button class="les" data-les="' + l.id + '"><span class="num' + (done ? ' done' : isNext ? ' next' : '') + '">' + (done ? '✓' : LESSONS.indexOf(l) + 1) + '</span><span class="grow"><span class="ell" style="display:block">' + esc(l.title) + '</span><span class="small muted">' + (l.noTask ? 'чтение' : 'задача') + ' · ' + l.xp + ' XP</span></span></button>';
@@ -527,7 +529,7 @@ function closeViewSoon() { setTimeout(() => goBack(), 700); }
 function codeTab(body, l) {
   body.innerHTML = '<div class="codewrap"><div class="lbl" style="margin:0 2px -4px">Код</div><div id="edslot" style="flex:1 1 170px;min-height:170px;display:flex;flex-direction:column"></div><div class="lbl" style="margin:0 2px -4px">Ввод для программы</div><div id="inslot"></div>' +
     '<div class="btns"><button class="btn primary" id="rn">▶ Запуск</button><button class="btn green" id="ck">✓ Проверить</button><button class="btn" id="mn" style="flex:none">⋯</button></div><div class="out" id="out" style="display:none"></div></div>';
-  const ed = makeEditor({ value: l.id in S.code ? S.code[l.id] : l.starter, onChange: v => { S.code[l.id] = v; save(); } });
+  const ed = makeEditor({ value: l.id in S.code ? S.code[l.id] : l.starter, onChange: v => { S.code[l.id] = v; save(); }, onRun: () => runInto(out, ed, ed.value, inp.value) });
   ed.el.style.flex = '1';
   $('#edslot').appendChild(ed.el);
   const inp = makeEditor({ small: true, value: l.tests[0].in || '' });
@@ -553,7 +555,7 @@ function codeTab(body, l) {
 function renderSandbox(main) {
   main.className = 'nopad';
   main.innerHTML = '<div class="topbar"><div class="ttl"><b>Песочница</b><span>Свободный код: пиши что угодно</span></div></div><div class="codewrap" style="padding-top:10px"><div id="edslot" style="flex:1 1 170px;min-height:170px;display:flex;flex-direction:column"></div><div class="lbl" style="margin:0 2px -4px">Ввод для программы</div><div id="inslot"></div><div class="btns"><button class="btn primary" id="rn">▶ Запуск</button><button class="btn" id="mn" style="flex:none">⋯</button></div><div class="out" id="out" style="display:none"></div></div>';
-  const ed = makeEditor({ value: S.sandbox, onChange: v => { S.sandbox = v; save(); } });
+  const ed = makeEditor({ value: S.sandbox, onChange: v => { S.sandbox = v; save(); }, onRun: () => runInto(out, ed, ed.value, inp.value) });
   ed.el.style.flex = '1'; $('#edslot').appendChild(ed.el);
   const inp = makeEditor({ small: true, value: S.sbInput, onChange: v => { S.sbInput = v; save(); } });
   $('#inslot').appendChild(inp.el);
@@ -644,7 +646,7 @@ function renderMe(main) {
     '<div class="field"><span>Анимация фона</span><button class="sw' + (st.anim ? ' on' : '') + '" id="sw2" aria-label="Анимация фона"></button></div></div>' +
     '<h2>Резервная копия</h2><div class="card"><p class="small muted" style="margin-top:0">Скопируй текст и сохрани в заметках — так можно перенести прогресс на другое устройство.</p><textarea class="plain" id="bk" spellcheck="false" autocapitalize="off"></textarea><div class="btns" style="margin-top:8px"><button class="btn" id="b1">Скопировать</button><button class="btn primary" id="b2">Загрузить</button></div></div>' +
     '<h2>Установка на телефон</h2><details class="help"><summary>iPhone / iPad (Safari)</summary><ol><li>Открой сайт в <b>Safari</b>.</li><li>Нажми «Поделиться» (квадрат со стрелкой).</li><li>Выбери «На экран “Домой”».</li></ol></details><details class="help"><summary>Android (Chrome)</summary><ol><li>Открой сайт в Chrome.</li><li>Меню ⋮ → «Установить приложение» или «Добавить на главный экран».</li></ol></details><details class="help"><summary>Работа без интернета</summary><p>Один раз открой приложение с интернетом и подожди пару секунд. Дальше оно запускается и без сети.</p></details>' +
-    '<h2>Опасная зона</h2><div class="card"><button class="btn red big" id="rs">Сбросить прогресс</button></div><p class="small muted" style="text-align:center">C++ Академия · v1</p>';
+    '<h2>Опасная зона</h2><div class="card"><button class="btn red big" id="rs">Сбросить прогресс</button></div><p class="small muted" style="text-align:center">C++ Академия · v2</p>';
   const bk = $('#bk'); bk.value = JSON.stringify(S);
   $('#th').onclick = e => { const b = e.target.closest('[data-th]'); if (!b) return; st.theme = b.dataset.th; applyTheme(); saveNow(); $$('#th .theme').forEach(x => x.classList.toggle('on', x === b)); };
   $('#fs').oninput = e => { st.fs = +e.target.value; $('#fsv').textContent = st.fs; applyTheme(); save(); };
