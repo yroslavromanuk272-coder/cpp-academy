@@ -21,7 +21,7 @@ D.modules.forEach(m => m.lessons.forEach(l => { l.mod = m; LESSONS.push(l); BYID
 const css = document.createElement('style');
 css.textContent = '.theory code,.qtext code,.expl code,.taskbox code,.sub code,.banner code{font:0.9em var(--mono);background:rgba(0,0,0,.4);padding:1px 5px;border-radius:5px;color:#ffe28c}' +
   '.theory h2{color:var(--acc)}.theory b{color:#fff}.lbl{font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin:2px 2px 4px}' +
-  '.codewrap{overflow-y:auto}#main.nopad .lbody.theory{padding-top:8px}.stat{flex:1;text-align:center}.stat b{display:block;font-size:22px}.stat span{font-size:12px;color:var(--muted)}';
+  '.codewrap{overflow-y:auto}.codewrap>*{flex-shrink:0}.codewrap>#edslot{flex-shrink:1}#app.kb .tabsrow,#app.kb .lbl,#app.kb #inslot,#app.kb .out{display:none!important}#app.kb .topbar{padding-top:calc(var(--sat) + 4px);padding-bottom:4px}#main.nopad .lbody.theory{padding-top:8px}.stat{flex:1;text-align:center}.stat b{display:block;font-size:22px}.stat span{font-size:12px;color:var(--muted)}';
 document.head.appendChild(css);
 
 /* ---------------- состояние ---------------- */
@@ -221,8 +221,9 @@ function symInit() {
 }
 function symPlace() {
   const bar = $('#symbar'), app = $('#app'), vv = window.visualViewport;
-  if (!vv) { app.style.paddingBottom = bar.classList.contains('show') ? '52px' : ''; return; }
+  if (!vv) { app.classList.remove('kb'); app.style.paddingBottom = bar.classList.contains('show') ? '52px' : ''; return; }
   const kb = symEd && (innerHeight - vv.height > 90);
+  app.classList.toggle('kb', !!kb);
   bar.style.bottom = Math.max(0, innerHeight - vv.height - vv.offsetTop) + 'px';
   if (kb) {
     app.style.top = vv.offsetTop + 'px'; app.style.bottom = 'auto'; app.style.height = vv.height + 'px';
@@ -299,7 +300,10 @@ function makeEditor(opts) {
 
 /* ---------------- выполнение и проверка ---------------- */
 function trunc(s, n) { s = String(s); return s.length > n ? s.slice(0, n) + '\n… (обрезано)' : s; }
+function dropKeyboard() { try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } catch (e) {} }
+function showOut(outEl) { setTimeout(() => { try { outEl.scrollIntoView({ block: 'nearest' }); } catch (e) {} }, 350); }
 function runInto(outEl, ed, code, input) {
+  dropKeyboard(); showOut(outEl);
   outEl.style.display = 'block';
   outEl.innerHTML = '<div class="muted">Выполняется…</div>';
   setTimeout(() => {
@@ -339,6 +343,7 @@ function addXP(n) {
 }
 function nextLesson(l) { const i = LESSONS.indexOf(l); return LESSONS[i + 1] || null; }
 function checkInto(outEl, ed, l, code) {
+  dropKeyboard(); showOut(outEl);
   outEl.style.display = 'block';
   outEl.innerHTML = '<div class="muted">Проверяю…</div>';
   setTimeout(() => {
@@ -520,7 +525,7 @@ function lessonBody(l) {
 function closeViewSoon() { setTimeout(() => goBack(), 700); }
 
 function codeTab(body, l) {
-  body.innerHTML = '<div class="codewrap"><div class="lbl" style="margin:0 2px -4px">Код</div><div id="edslot" style="flex:1;min-height:0;display:flex;flex-direction:column"></div><div class="lbl" style="margin:0 2px -4px">Ввод для программы</div><div id="inslot"></div>' +
+  body.innerHTML = '<div class="codewrap"><div class="lbl" style="margin:0 2px -4px">Код</div><div id="edslot" style="flex:1 1 170px;min-height:170px;display:flex;flex-direction:column"></div><div class="lbl" style="margin:0 2px -4px">Ввод для программы</div><div id="inslot"></div>' +
     '<div class="btns"><button class="btn primary" id="rn">▶ Запуск</button><button class="btn green" id="ck">✓ Проверить</button><button class="btn" id="mn" style="flex:none">⋯</button></div><div class="out" id="out" style="display:none"></div></div>';
   const ed = makeEditor({ value: l.id in S.code ? S.code[l.id] : l.starter, onChange: v => { S.code[l.id] = v; save(); } });
   ed.el.style.flex = '1';
@@ -547,7 +552,7 @@ function codeTab(body, l) {
 /* ---------------- песочница ---------------- */
 function renderSandbox(main) {
   main.className = 'nopad';
-  main.innerHTML = '<div class="topbar"><div class="ttl"><b>Песочница</b><span>Свободный код: пиши что угодно</span></div></div><div class="codewrap" style="padding-top:10px"><div id="edslot" style="flex:1;min-height:0;display:flex;flex-direction:column"></div><div class="lbl" style="margin:0 2px -4px">Ввод для программы</div><div id="inslot"></div><div class="btns"><button class="btn primary" id="rn">▶ Запуск</button><button class="btn" id="mn" style="flex:none">⋯</button></div><div class="out" id="out" style="display:none"></div></div>';
+  main.innerHTML = '<div class="topbar"><div class="ttl"><b>Песочница</b><span>Свободный код: пиши что угодно</span></div></div><div class="codewrap" style="padding-top:10px"><div id="edslot" style="flex:1 1 170px;min-height:170px;display:flex;flex-direction:column"></div><div class="lbl" style="margin:0 2px -4px">Ввод для программы</div><div id="inslot"></div><div class="btns"><button class="btn primary" id="rn">▶ Запуск</button><button class="btn" id="mn" style="flex:none">⋯</button></div><div class="out" id="out" style="display:none"></div></div>';
   const ed = makeEditor({ value: S.sandbox, onChange: v => { S.sandbox = v; save(); } });
   ed.el.style.flex = '1'; $('#edslot').appendChild(ed.el);
   const inp = makeEditor({ small: true, value: S.sbInput, onChange: v => { S.sbInput = v; save(); } });
